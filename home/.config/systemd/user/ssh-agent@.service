@@ -1,0 +1,8 @@
+[Unit]
+Description = SSH Agent Socket Forwarder
+
+[Service]
+ExecStart = pageant.exe
+StandardInput = socket
+StandardOutput = socket
+StandardError = journal

@@ -1,0 +1,59 @@
+#!/bin/bash
+
+UNAME=andy
+UUID=$(id -u $UNAME)
+UGID=$(id -g $UNAME)
+UHOME=$(getent passwd $UNAME | cut -d: -f6)
+USHELL=$(getent passwd $UNAME | cut -d: -f7)
+
+if [[ -p /dev/stdin || $BASH_ARGC > 0 && ${BASH_ARGV[1]} != "-c" ]]
+then
+  USHELL=/bin/bash
+fi
+
+if [[ $PWD = "/root" ]]
+then
+  cd $UHOME
+fi
+
+SYSTEMD_PID=$(pgrep -xo systemd)
+if [[ $SYSTEMD_PID -eq 1 ]]
+then
+  # Systemd is already PID1 - we're inside the namespaces so we can
+  # finally run what we're trying to run
+  exec $USHELL "$@"
+else if [[ $SYSTEMD_PID = "" ]]
+  then
+    echo "Creating systemd cgroup sub-heirarchy"
+    mkdir -p /sys/fs/cgroup/unified/systemd/staging
+
+    # Delegate control to subgroups so systemd can manage it inside the namespace
+    echo "+cpu +cpuset +io +memory +pids +hugetlb +rdma +misc" > /sys/fs/cgroup/unified/cgroup.subtree_control
+
+    # New pid/mount namespaces (so we can create local /proc /sys /dev mounts) and start systemd as PID1
+    /usr/bin/daemonize -l ${HOME}/.systemd.lock /usr/bin/unshare -fmp /bin/start-systemd-in-namespace-stage1
+  fi
+fi
+
+while [[ $SYSTEMD_PID = "" ]]
+do
+  echo "Waiting for systemd to start up"
+  sleep 0.5
+  SYSTEMD_PID=$(pgrep -xo systemd)
+done
+
+while ! /usr/bin/nsenter -t $SYSTEMD_PID -m -C -p systemctl 2>&1 > /dev/null
+do
+  echo "Waiting for systemd to start DBus"
+  sleep 0.5
+done
+
+while ! /usr/bin/nsenter -t $SYSTEMD_PID -m -C -p loginctl 2>&1 > /dev/null
+do
+  echo "Waiting for systemd to start logind"
+  sleep 0.5
+done
+
+# Systemd is now running so enter the cgroup heirarchy's staging group and jump into all the namespaces
+echo 0 > /sys/fs/cgroup/unified/systemd/staging/cgroup.procs
+/usr/bin/nsenter -t $SYSTEMD_PID -m -C -p --wd="$PWD" /sbin/runuser -l -w WSL_INTEROP -w WSL_DISTRO_NAME -w WAYLAND_DISPLAY -w DISPLAY -s $USHELL $UNAME -- "$@"

@@ -1,0 +1,9 @@
+[Unit]
+Description = GPG Agent Socket
+
+[Socket]
+ListenStream = /var/run/user/1000/gnupg/S.gpg-agent
+Accept = Yes
+
+[Install]
+WantedBy = sockets.target

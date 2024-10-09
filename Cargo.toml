@@ -1,0 +1,3 @@
+[workspace]
+members = [ "pipette", "pageant" ]
+resolver = "2"

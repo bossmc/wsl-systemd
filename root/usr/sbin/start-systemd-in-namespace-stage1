@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# Assumes we're being started as PID1 in a new PID and mount namespace
+echo "Entering systemd cgroup"
+echo 0 > /sys/fs/cgroup/unified/systemd/cgroup.procs
+
+echo "Unmounting old /sys"
+umount -R /sys
+
+echo "Unmounting old /dev"
+umount -R /dev
+
+#echo "Unmounting old /run"
+#umount -R /run
+
+echo "Unmounting old /proc"
+umount -R /proc
+
+echo "Starting systemd init in new cgroup namespace"
+#exec unshare -C bash
+container=wsl exec unshare -C /lib/systemd/systemd --system-unit=basic-target

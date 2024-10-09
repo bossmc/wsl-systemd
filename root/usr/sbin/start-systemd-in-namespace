@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# Assumes we're being started as PID1 in a new PID and mount namespace
+echo "Unmounting old /proc/binfmt"
+umount /proc/sys/fs/binfmt_misc
+echo "Unmounting old /proc"
+umount /proc
+echo "Remounting /proc"
+mount -t proc proc /proc
+container=wsl exec /lib/systemd/systemd --system-unit=basic-target

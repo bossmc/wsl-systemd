@@ -1,0 +1,8 @@
+[Unit]
+Description = GPG Agent Socket Forwarder
+
+[Service]
+ExecStart = pipette.exe gpg-agent
+StandardInput = socket
+StandardOutput = socket
+StandardError = journal
