@@ -31,7 +31,7 @@ else if [[ $SYSTEMD_PID = "" ]]
     echo "+cpu +cpuset +io +memory +pids +hugetlb +rdma +misc" > /sys/fs/cgroup/unified/cgroup.subtree_control
 
     # New pid/mount namespaces (so we can create local /proc /sys /dev mounts) and start systemd as PID1
-    /usr/bin/daemonize -l ${HOME}/.systemd.lock /usr/bin/unshare -fmp /bin/start-systemd-in-namespace-stage1
+    /usr/bin/daemonize -l ${HOME}/.systemd.lock /usr/bin/unshare -fmp /usr/sbin/start-systemd-in-namespace-stage1
   fi
 fi
 
